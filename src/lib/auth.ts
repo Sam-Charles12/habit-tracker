@@ -1,13 +1,19 @@
 export type User = {
   id: string;
   email: string;
-  password?: string;
-  name: string;
+  password: string;
+  name: string; // kept for UI display
+  createdAt: string;
 };
 
-// Keys for local storage
-const USERS_KEY = "local_users";
-const SESSION_KEY = "current_session";
+export type Session = {
+  userId: string;
+  email: string;
+};
+
+// Keys for local storage — matches persistence contract
+const USERS_KEY = "habit-tracker-users";
+const SESSION_KEY = "habit-tracker-session";
 
 // Helper to check if we are in the browser
 const isBrowser = typeof window !== "undefined";
@@ -23,25 +29,29 @@ export const setLocalUsers = (users: User[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
-export const getCurrentUser = (): User | null => {
+export const getCurrentSession = (): Session | null => {
   if (!isBrowser) return null;
-  const sessionId = localStorage.getItem(SESSION_KEY);
-  if (!sessionId) return null;
-  const users = getLocalUsers();
-  const user = users.find((u) => u.id === sessionId);
-  if (user) {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword as User;
-  }
-  return null;
+  const stored = localStorage.getItem(SESSION_KEY);
+  if (!stored || stored === "null") return null;
+  return JSON.parse(stored);
 };
 
-export const setCurrentUser = (userId: string) => {
+export const getCurrentUser = (): User | null => {
+  if (!isBrowser) return null;
+  const session = getCurrentSession();
+  if (!session) return null;
+  const users = getLocalUsers();
+  const user = users.find((u) => u.id === session.userId);
+  return user || null;
+};
+
+export const setCurrentUser = (userId: string, email: string) => {
   if (!isBrowser) return;
-  localStorage.setItem(SESSION_KEY, userId);
+  const session: Session = { userId, email };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 };
 
 export const clearCurrentUser = () => {
   if (!isBrowser) return;
-  localStorage.removeItem(SESSION_KEY);
+  localStorage.setItem(SESSION_KEY, "null");
 };

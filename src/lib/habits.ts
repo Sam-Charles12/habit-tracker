@@ -1,22 +1,19 @@
 export type Habit = {
   id: string;
   userId: string;
-  title: string;
+  name: string;
+  description: string;
+  frequency: "daily";
   createdAt: string;
+  completions: string[]; // unique ISO calendar dates in YYYY-MM-DD format
 };
 
-export type HabitLog = {
-  habitId: string;
-  date: string; // YYYY-MM-DD
-  completed: boolean;
-};
-
-const HABITS_KEY = "local_habits";
-const HABIT_LOGS_KEY = "local_habit_logs";
+// Key for local storage — matches persistence contract
+const HABITS_KEY = "habit-tracker-habits";
 
 const isBrowser = typeof window !== "undefined";
 
-// --- Habits ---
+// --- Habits CRUD ---
 
 export const getLocalHabits = (): Habit[] => {
   if (!isBrowser) return [];
@@ -31,28 +28,38 @@ export const setLocalHabits = (habits: Habit[]) => {
 
 export const getUserHabits = (userId: string): Habit[] => {
   const habits = getLocalHabits();
-  return habits.filter((h) => h.userId === userId).sort((a, b) => 
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+  return habits
+    .filter((h) => h.userId === userId)
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
 };
 
-export const addHabit = (userId: string, title: string): Habit => {
+export const addHabit = (
+  userId: string,
+  name: string,
+  description: string = ""
+): Habit => {
   const habits = getLocalHabits();
   const newHabit: Habit = {
     id: crypto.randomUUID(),
     userId,
-    title,
+    name,
+    description,
+    frequency: "daily",
     createdAt: new Date().toISOString(),
+    completions: [],
   };
   setLocalHabits([...habits, newHabit]);
   return newHabit;
 };
 
-export const editHabit = (habitId: string, newTitle: string) => {
+export const editHabit = (habitId: string, newName: string) => {
   const habits = getLocalHabits();
   const index = habits.findIndex((h) => h.id === habitId);
   if (index !== -1) {
-    habits[index].title = newTitle;
+    habits[index].name = newName;
     setLocalHabits(habits);
   }
 };
@@ -60,24 +67,9 @@ export const editHabit = (habitId: string, newTitle: string) => {
 export const deleteHabit = (habitId: string) => {
   const habits = getLocalHabits();
   setLocalHabits(habits.filter((h) => h.id !== habitId));
-  
-  // Clean up logs
-  const logs = getLocalHabitLogs();
-  setLocalHabitLogs(logs.filter((l) => l.habitId !== habitId));
 };
 
-// --- Logs & Streaks ---
-
-export const getLocalHabitLogs = (): HabitLog[] => {
-  if (!isBrowser) return [];
-  const stored = localStorage.getItem(HABIT_LOGS_KEY);
-  return stored ? JSON.parse(stored) : [];
-};
-
-export const setLocalHabitLogs = (logs: HabitLog[]) => {
-  if (!isBrowser) return;
-  localStorage.setItem(HABIT_LOGS_KEY, JSON.stringify(logs));
-};
+// --- Completions & Streaks ---
 
 export const getTodayDateString = () => {
   const today = new Date();
@@ -87,39 +79,43 @@ export const getTodayDateString = () => {
 };
 
 export const toggleHabitCompletion = (habitId: string, date: string) => {
-  const logs = getLocalHabitLogs();
-  const existingLogIndex = logs.findIndex(
-    (l) => l.habitId === habitId && l.date === date
-  );
+  const habits = getLocalHabits();
+  const index = habits.findIndex((h) => h.id === habitId);
+  if (index === -1) return;
 
-  if (existingLogIndex !== -1) {
-    logs[existingLogIndex].completed = !logs[existingLogIndex].completed;
+  const habit = habits[index];
+
+  if (habit.completions.includes(date)) {
+    // Unmark — remove the date
+    habit.completions = habit.completions.filter((d) => d !== date);
   } else {
-    logs.push({ habitId, date, completed: true });
+    // Mark — add the date (ensure unique)
+    habit.completions = [...habit.completions, date];
   }
 
-  setLocalHabitLogs(logs);
+  setLocalHabits(habits);
 };
 
-export const getHabitLogsForDate = (date: string): HabitLog[] => {
-  const logs = getLocalHabitLogs();
-  return logs.filter((l) => l.date === date);
-};
-
-export const isHabitCompletedToday = (habitId: string, date: string): boolean => {
-  const logs = getLocalHabitLogs();
-  const log = logs.find((l) => l.habitId === habitId && l.date === date);
-  return log?.completed || false;
+export const isHabitCompletedToday = (
+  habitId: string,
+  date: string
+): boolean => {
+  const habits = getLocalHabits();
+  const habit = habits.find((h) => h.id === habitId);
+  if (!habit) return false;
+  return habit.completions.includes(date);
 };
 
 export const calculateStreak = (habitId: string): number => {
-  const logs = getLocalHabitLogs()
-    .filter((l) => l.habitId === habitId && l.completed)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const habits = getLocalHabits();
+  const habit = habits.find((h) => h.id === habitId);
+  if (!habit || habit.completions.length === 0) return 0;
 
-  if (logs.length === 0) return 0;
+  // Sort completions descending
+  const sorted = [...habit.completions].sort(
+    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+  );
 
-  let streak = 0;
   const todayStr = getTodayDateString();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -128,21 +124,23 @@ export const calculateStreak = (habitId: string): number => {
   const yesterdayStr = yesterday.toISOString().split("T")[0];
 
   // If the most recent completion is neither today nor yesterday, streak is broken
-  if (logs[0].date !== todayStr && logs[0].date !== yesterdayStr) {
+  if (sorted[0] !== todayStr && sorted[0] !== yesterdayStr) {
     return 0;
   }
 
-  // Iterate backwards and count consecutive days
-  let expectedDateStr = logs[0].date;
-  
-  for (const log of logs) {
-    if (log.date === expectedDateStr) {
+  // Count consecutive days backwards
+  let streak = 0;
+  let expectedDateStr = sorted[0];
+
+  for (const dateStr of sorted) {
+    if (dateStr === expectedDateStr) {
       streak++;
       // Set expected to the day before
       const expectedDate = new Date(expectedDateStr);
       expectedDate.setDate(expectedDate.getDate() - 1);
-      // Correct for timezone offset issues
-      expectedDate.setMinutes(expectedDate.getMinutes() - expectedDate.getTimezoneOffset());
+      expectedDate.setMinutes(
+        expectedDate.getMinutes() - expectedDate.getTimezoneOffset()
+      );
       expectedDateStr = expectedDate.toISOString().split("T")[0];
     } else {
       break; // Gap in streak

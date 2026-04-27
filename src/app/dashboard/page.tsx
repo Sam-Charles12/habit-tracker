@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser, clearCurrentUser, User } from "@/lib/auth";
+import { getCurrentUser, clearCurrentUser } from "@/lib/auth";
 import {
   Habit,
   getUserHabits,
   addHabit,
-  editHabit,
   deleteHabit,
   getTodayDateString,
   isHabitCompletedToday,
@@ -31,55 +30,42 @@ const getIconColor = (id: string) => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [loading, setLoading] = useState(true);
+  const currentUser = getCurrentUser();
+  const [habits, setHabits] = useState<Habit[]>(() =>
+    currentUser ? getUserHabits(currentUser.id) : []
+  );
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newHabitTitle, setNewHabitTitle] = useState("");
   const todayStr = getTodayDateString();
 
-  const refreshHabits = (userId: string) => {
-    setHabits(getUserHabits(userId));
+  const refreshHabits = () => {
+    if (!currentUser) return;
+    setHabits(getUserHabits(currentUser.id));
   };
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
     if (!currentUser) {
-      router.push("/login");
-      return;
+      router.replace("/login");
     }
-    setUser(currentUser);
-    refreshHabits(currentUser.id);
-    setLoading(false);
-  }, [router]);
+  }, [currentUser, router]);
 
   const handleLogout = () => {
     clearCurrentUser();
     router.push("/");
   };
 
-  const handleAddHabit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!newHabitTitle.trim() || !user) return;
-    addHabit(user.id, newHabitTitle.trim());
-    setNewHabitTitle("");
-    setShowAddModal(false);
-    refreshHabits(user.id);
-  };
-
   const handleDeleteHabit = (habitId: string) => {
-    if (!user) return;
+    if (!currentUser) return;
     deleteHabit(habitId);
-    refreshHabits(user.id);
+    refreshHabits();
   };
 
   const handleToggleHabit = (habitId: string) => {
-    if (!user) return;
+    if (!currentUser) return;
     toggleHabitCompletion(habitId, todayStr);
-    setHabits([...habits]); 
+    refreshHabits();
   };
 
-  if (loading || !user) {
+  if (!currentUser) {
     return (
       <div className="flex-grow flex items-center justify-center bg-zinc-950">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-emerald-500"></div>
@@ -112,7 +98,7 @@ export default function DashboardPage() {
         {/* Header Section */}
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{greeting}, {user.name.split(" ")[0]}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">{greeting}, {currentUser.name.split(" ")[0]}</h1>
             <p className="text-zinc-400 text-sm mt-1">{formattedDate}</p>
           </div>
           <div className="flex items-center gap-4">
@@ -124,7 +110,7 @@ export default function DashboardPage() {
               </svg>
             </button>
             <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center border-2 border-zinc-700 overflow-hidden">
-              <span className="text-lg font-bold text-emerald-400">{user.name.charAt(0).toUpperCase()}</span>
+              <span className="text-lg font-bold text-emerald-400">{currentUser.name.charAt(0).toUpperCase()}</span>
             </div>
           </div>
         </header>
@@ -211,7 +197,7 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <h3 className={`font-medium ${isCompleted ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}>
-                            {habit.title}
+                            {habit.name}
                           </h3>
                           <p className="text-xs text-zinc-500 mt-0.5">Streak {streak} days</p>
                         </div>
@@ -262,10 +248,10 @@ export default function DashboardPage() {
           <AddHabitModal
             onClose={() => setShowAddModal(false)}
             onSave={(title) => {
-              if (!title.trim() || !user) return;
-              addHabit(user.id, title.trim());
+              if (!title.trim()) return;
+              addHabit(currentUser.id, title.trim());
               setShowAddModal(false);
-              refreshHabits(user.id);
+              refreshHabits();
             }}
           />
         )}
