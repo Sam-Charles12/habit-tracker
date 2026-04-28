@@ -32,14 +32,14 @@ export const getUserHabits = (userId: string): Habit[] => {
     .filter((h) => h.userId === userId)
     .sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 };
 
 export const addHabit = (
   userId: string,
   name: string,
-  description: string = ""
+  description: string = "",
 ): Habit => {
   const habits = getLocalHabits();
   const newHabit: Habit = {
@@ -78,7 +78,48 @@ export const getTodayDateString = () => {
   return today.toISOString().split("T")[0];
 };
 
-export const toggleHabitCompletion = (habitId: string, date: string) => {
+/**
+ * Toggle completion status for a habit on a specific date.
+ * Operates on the habit object directly (immutable).
+ *
+ * @param habit - The habit object to toggle
+ * @param date - The date to toggle (YYYY-MM-DD format)
+ * @returns A new Habit object with toggled completion (original not mutated)
+ *
+ * @example
+ * const habit = { id: "1", name: "Yoga", completions: [] };
+ * const updated = toggleHabitCompletion(habit, "2024-01-15");
+ * // => { ...habit, completions: ["2024-01-15"] }
+ */
+export const toggleHabitCompletion = (habit: Habit, date: string): Habit => {
+  if (habit.completions.includes(date)) {
+    // Remove the date (unmark)
+    return {
+      ...habit,
+      completions: habit.completions.filter((d) => d !== date),
+    };
+  } else {
+    // Add the date (mark), ensuring uniqueness
+    return {
+      ...habit,
+      completions: [...habit.completions, date],
+    };
+  }
+};
+
+/**
+ * Toggle completion status for a habit in localStorage (legacy).
+ * This function modifies the habit in the stored habits list.
+ *
+ * @param habitId - The ID of the habit to toggle
+ * @param date - The date to toggle (YYYY-MM-DD format)
+ *
+ * @deprecated Use the single-habit toggleHabitCompletion() instead
+ */
+export const toggleHabitCompletionInStorage = (
+  habitId: string,
+  date: string,
+) => {
   const habits = getLocalHabits();
   const index = habits.findIndex((h) => h.id === habitId);
   if (index === -1) return;
@@ -98,7 +139,7 @@ export const toggleHabitCompletion = (habitId: string, date: string) => {
 
 export const isHabitCompletedToday = (
   habitId: string,
-  date: string
+  date: string,
 ): boolean => {
   const habits = getLocalHabits();
   const habit = habits.find((h) => h.id === habitId);
@@ -113,7 +154,7 @@ export const calculateStreak = (habitId: string): number => {
 
   // Sort completions descending
   const sorted = [...habit.completions].sort(
-    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+    (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
 
   const todayStr = getTodayDateString();
@@ -139,7 +180,7 @@ export const calculateStreak = (habitId: string): number => {
       const expectedDate = new Date(expectedDateStr);
       expectedDate.setDate(expectedDate.getDate() - 1);
       expectedDate.setMinutes(
-        expectedDate.getMinutes() - expectedDate.getTimezoneOffset()
+        expectedDate.getMinutes() - expectedDate.getTimezoneOffset(),
       );
       expectedDateStr = expectedDate.toISOString().split("T")[0];
     } else {
