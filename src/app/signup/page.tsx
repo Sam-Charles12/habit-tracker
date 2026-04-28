@@ -7,7 +7,6 @@ import { getLocalUsers, setLocalUsers, setCurrentUser } from "@/lib/auth";
 
 export default function SignupPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,7 +18,7 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
       return;
     }
@@ -44,7 +43,6 @@ export default function SignupPage() {
 
     const newUser = {
       id: crypto.randomUUID(),
-      name,
       email,
       password, // Note: In a real app, this would be hashed on the backend
       createdAt: new Date().toISOString(),
@@ -87,17 +85,6 @@ export default function SignupPage() {
 
         {/* Form */}
         <form onSubmit={handleSignup} className="space-y-5 flex-grow">
-          {/* Username */}
-          <div>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-5 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-              placeholder="User name"
-            />
-          </div>
-
           {/* Email */}
           <div>
             <input
