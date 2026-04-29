@@ -55,11 +55,18 @@ export const addHabit = (
   return newHabit;
 };
 
-export const editHabit = (habitId: string, newName: string) => {
+export const editHabit = (
+  habitId: string,
+  newName: string,
+  newDescription?: string,
+) => {
   const habits = getLocalHabits();
   const index = habits.findIndex((h) => h.id === habitId);
   if (index !== -1) {
     habits[index].name = newName;
+    if (newDescription !== undefined) {
+      habits[index].description = newDescription;
+    }
     setLocalHabits(habits);
   }
 };

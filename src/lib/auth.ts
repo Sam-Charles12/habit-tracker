@@ -52,5 +52,5 @@ export const setCurrentUser = (userId: string, email: string) => {
 
 export const clearCurrentUser = () => {
   if (!isBrowser) return;
-  localStorage.setItem(SESSION_KEY, "null");
+  localStorage.removeItem(SESSION_KEY);
 };

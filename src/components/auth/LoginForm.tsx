@@ -17,7 +17,7 @@ export function LoginForm() {
     setError("");
 
     if (!email || !password) {
-      setError("Please fill in all fields.");
+      setError("Invalid email or password");
       return;
     }
 
@@ -27,7 +27,7 @@ export function LoginForm() {
     );
 
     if (!user) {
-      setError("Invalid email or password.");
+      setError("Invalid email or password");
       return;
     }
 

@@ -41,7 +41,7 @@ export default function OfflinePage() {
       }, 500);
       return () => clearTimeout(timer);
     }
-
+    
     // Load cached user and habits
     const currentUser = getCurrentUser();
     if (currentUser) {

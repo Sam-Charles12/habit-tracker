@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     clearCurrentUser();
-    router.push("/");
+    router.replace("/login");
   };
 
   const handleDeleteHabit = (habitId: string) => {
@@ -393,7 +393,7 @@ export default function DashboardPage() {
         <button
           data-testid="create-habit-button"
           onClick={() => setShowAddModal(true)}
-          className="fixed bottom-8 right-8 w-16 h-16 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(16,185,129,0.3)] transition-transform hover:scale-105 z-50"
+          className="fixed bottom-8 right-4 md:right-8 w-16 h-16 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(16,185,129,0.3)] transition-transform hover:scale-105 z-50"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -432,9 +432,9 @@ export default function DashboardPage() {
               setShowEditModal(false);
               setEditingHabit(null);
             }}
-            onSave={(name) => {
+            onSave={(name, description) => {
               if (!name.trim() || !user) return;
-              editHabit(editingHabit.id, name.trim());
+              editHabit(editingHabit.id, name.trim(), description);
               setShowEditModal(false);
               setEditingHabit(null);
               refreshHabits(user.id);
@@ -591,9 +591,10 @@ function EditHabitModal({
 }: {
   habit: Habit;
   onClose: () => void;
-  onSave: (name: string) => void;
+  onSave: (name: string, description: string) => void;
 }) {
   const [title, setTitle] = useState(habit.name);
+  const [description, setDescription] = useState(habit.description || "");
   const [goalChecked, setGoalChecked] = useState(false);
   const [goalDate, setGoalDate] = useState("");
   const [goalAmount, setGoalAmount] = useState("");
@@ -614,7 +615,7 @@ function EditHabitModal({
 
   const handleSave = () => {
     if (!title.trim()) return;
-    onSave(title.trim());
+    onSave(title.trim(), description.trim());
   };
 
   return (
@@ -701,6 +702,21 @@ function EditHabitModal({
             placeholder="Morning Meditations"
             className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-5 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             autoFocus
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-zinc-400 text-sm mb-2">
+            Description (optional)
+          </label>
+          <textarea
+            data-testid="edit-habit-description-input"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Why this habit matters"
+            className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            rows={3}
           />
         </div>
 

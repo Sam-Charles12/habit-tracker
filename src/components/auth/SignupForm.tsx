@@ -18,8 +18,18 @@ export function SignupForm() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password || !confirmPassword) {
-      setError("Please fill in all fields.");
+    if (!email) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
+
+    if (!confirmPassword) {
+      setError("Confirm password is required");
       return;
     }
 
@@ -28,14 +38,9 @@ export function SignupForm() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-
     const users = getLocalUsers();
     if (users.some((u) => u.email === email)) {
-      setError("An account with this email already exists.");
+      setError("User already exists");
       return;
     }
 

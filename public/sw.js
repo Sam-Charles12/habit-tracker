@@ -7,7 +7,12 @@ const ASSET_CACHE = `habit-tracker-assets-v${CACHE_VERSION}`;
 const APP_SHELL_ROUTES = ["/", "/login", "/signup", "/dashboard", "/offline"];
 
 // Static assets to precache (icons, manifest, etc)
-const STATIC_ASSETS = ["/manifest.json", "/icon.svg"];
+const STATIC_ASSETS = [
+  "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icon.svg",
+];
 
 // Install event - populate caches with app shell and static assets
 self.addEventListener("install", (event) => {
